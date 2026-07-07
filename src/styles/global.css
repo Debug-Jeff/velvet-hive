@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+/* ============================================
+   CSS Variables
+============================================ */
+:root {
+  --primary: #8f5822;        /* base brown - navbar, buttons, active states */
+  --primary-dark: #6e431a;   /* hover/active state - genuinely darker */
+  --primary-light: #ebd693;  /* light tan accents, badges */
+  --primary-tint: #b86f27;   /* secondary accent, e.g. price highlights */
+
+  --bg: #F6EADA;
+  --surface: #faf7f2;
+
+  --text: #1e293b;
+  --text-muted: #8a7a68;     /* warm gray, matches the rest of the palette */
+
+  --border: #f0eae2;
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+  --success: #22c55e;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.14);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+/* ============================================
+   Reset
+============================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  line-height: 1.5;
+
+  /* Doodle background: shopping bag, price tag, sparkles - tiled, low opacity */
+  background-color: var(--bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%238f5822' stroke-width='1.4' opacity='0.08'%3E%3Cpath d='M28 36h24v28a12 12 0 0 1-24 0z'/%3E%3Cpath d='M32 36q4-12 16 0'/%3E%3Cpath d='M80 80l16 16m0-16l-16 16'/%3E%3Cpath d='M88 20l3 8 8 3-8 3-3 8-3-8-8-3 8-3z'/%3E%3Cpath d='M20 90h14l-3 14h-8z'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 120px 120px;
+}
+
+img {
+  display: block;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ============================================
+   Page layout
+============================================ */
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 1rem;
+  }
+}
+
+/* Loading / error feedback */
+.status-msg {
+  text-align: center;
+  padding: 4rem 0;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.status-error {
+  color: var(--danger);
+}
