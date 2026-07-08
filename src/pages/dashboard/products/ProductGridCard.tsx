@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { optimizedImageUrl } from '@/lib/cloudinaryImage'
 import type { Product } from '@/types/product'
 
 interface ProductGridCardProps {
@@ -16,7 +17,7 @@ export default function ProductGridCard({ product, onEdit, onRemove }: ProductGr
     <Card className="gap-0 overflow-hidden py-0">
       <div className="relative aspect-square w-full overflow-hidden bg-muted">
         <img
-          src={product.imageUrl}
+          src={optimizedImageUrl(product.imageUrl)}
           alt=""
           className="size-full object-cover"
           onError={(e) => (e.currentTarget.style.visibility = 'hidden')}

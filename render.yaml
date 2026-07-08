@@ -88,6 +88,8 @@ services:
     envVars:
       - key: VITE_SENTRY_DSN
         sync: false
+      - key: VITE_CLOUDINARY_CLOUD_NAME
+        value: ybbx669q
     routes:
       # Same-origin API, proxied to the backend service so cookies and the
       # app's existing relative "/api" paths keep working unchanged. Uploaded

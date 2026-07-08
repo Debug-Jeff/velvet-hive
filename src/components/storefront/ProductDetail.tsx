@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCurrency } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
+import { optimizedImageUrl } from '@/lib/cloudinaryImage'
 import type { Product } from '@/types/product'
 
 interface ProductDetailProps {
@@ -29,7 +30,7 @@ export default function ProductDetail({ product, onClose }: ProductDetailProps) 
           </DialogDescription>
         </DialogHeader>
 
-        <img src={product.imageUrl} alt={product.name} className="aspect-video w-full rounded-md object-cover" />
+        <img src={optimizedImageUrl(product.imageUrl)} alt={product.name} className="aspect-video w-full rounded-md object-cover" />
 
         <p className="text-sm text-muted-foreground">
           {product.description || 'A great addition to your basket.'}

@@ -14,6 +14,7 @@ import * as productsApi from '@/api/products.api'
 import { ApiError } from '@/api/client'
 import { CATEGORIES } from '@/constants/categories'
 import { cn } from '@/lib/utils'
+import { optimizedImageUrl } from '@/lib/cloudinaryImage'
 import type { Product } from '@/types/product'
 
 const CATEGORY_FILTER_OPTIONS = CATEGORIES.map((c) => ({ label: c === 'All' ? 'All categories' : c, value: c }))
@@ -97,7 +98,7 @@ export default function ProductsTablePage() {
       header: 'Product',
       render: (p) => (
         <div className="flex items-center gap-3">
-          <img src={p.imageUrl} alt="" className="size-9 shrink-0 rounded-md object-cover" onError={(e) => (e.currentTarget.style.visibility = 'hidden')} />
+          <img src={optimizedImageUrl(p.imageUrl)} alt="" className="size-9 shrink-0 rounded-md object-cover" onError={(e) => (e.currentTarget.style.visibility = 'hidden')} />
           <div>
             <div className="font-medium">{p.name}</div>
             <div className="text-xs text-muted-foreground">{p.sku}</div>

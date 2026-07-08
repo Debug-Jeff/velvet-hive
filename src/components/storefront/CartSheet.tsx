@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/com
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/context/CartContext'
 import { useCurrency } from '@/context/CurrencyContext'
+import { optimizedImageUrl } from '@/lib/cloudinaryImage'
 
 export default function CartSheet() {
   const { items, isOpen, close, totalKes, removeFromCart, updateQuantity } = useCart()
@@ -26,7 +27,7 @@ export default function CartSheet() {
           <div className="flex-1 space-y-4 overflow-y-auto px-4">
             {items.map(({ product, quantity }) => (
               <div key={product.id} className="flex gap-3 border-b pb-4 last:border-0">
-                <img src={product.imageUrl} alt={product.name} className="size-16 shrink-0 rounded-md object-cover" />
+                <img src={optimizedImageUrl(product.imageUrl)} alt={product.name} className="size-16 shrink-0 rounded-md object-cover" />
                 <div className="flex-1">
                   <p className="font-medium leading-tight">{product.name}</p>
                   <p className="text-sm text-muted-foreground">{format(product.priceKes)}</p>

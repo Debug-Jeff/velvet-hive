@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCurrency } from '@/context/CurrencyContext'
 import { ORDER_STATUS_LABELS, orderStatusVariant } from '@/lib/orderStatus'
+import { optimizedImageUrl } from '@/lib/cloudinaryImage'
 import * as ordersApi from '@/api/orders.api'
 import { ApiError } from '@/api/client'
 import type { Order } from '@/types/order'
@@ -60,7 +61,7 @@ export default function OrderDetailPage() {
         <CardContent className="space-y-3">
           {order.items.map((item) => (
             <div key={item.id} className="flex items-center gap-3 border-b pb-3 last:border-0 last:pb-0">
-              <img src={item.product.imageUrl} alt="" className="size-12 rounded-md object-cover" />
+              <img src={optimizedImageUrl(item.product.imageUrl)} alt="" className="size-12 rounded-md object-cover" />
               <div className="flex-1">
                 <p className="font-medium">{item.product.name}</p>
                 <p className="text-xs text-muted-foreground">

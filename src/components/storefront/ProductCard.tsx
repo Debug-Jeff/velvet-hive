@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCurrency } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
+import { optimizedImageUrl } from '@/lib/cloudinaryImage'
 import type { Product } from '@/types/product'
 
 interface ProductCardProps {
@@ -31,7 +32,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
     >
       <div className="relative aspect-square w-full overflow-hidden bg-muted">
         <img
-          src={product.imageUrl}
+          src={optimizedImageUrl(product.imageUrl)}
           alt={product.name}
           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
