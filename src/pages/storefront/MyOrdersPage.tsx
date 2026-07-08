@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState, type MouseEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCurrency } from '@/context/CurrencyContext'
+import { useCart } from '@/context/CartContext'
 import { ORDER_STATUS_LABELS, orderStatusVariant } from '@/lib/orderStatus'
 import * as ordersApi from '@/api/orders.api'
 import { ApiError } from '@/api/client'
@@ -14,6 +17,18 @@ export default function MyOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { format } = useCurrency()
+  const { addToCart } = useCart()
+  const navigate = useNavigate()
+
+  function handleBuyAgain(e: MouseEvent, order: Order) {
+    e.preventDefault()
+    e.stopPropagation()
+    for (const item of order.items) {
+      addToCart(item.product, item.quantity)
+    }
+    toast.success('Items added to your cart')
+    navigate('/checkout')
+  }
 
   useEffect(() => {
     ordersApi
@@ -49,9 +64,14 @@ export default function MyOrdersPage() {
                     <p className="font-mono text-sm text-muted-foreground">#{order.id.slice(-8)}</p>
                     <p className="text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{format(order.totalKes)}</p>
-                    <Badge variant={orderStatusVariant(order.status)}>{ORDER_STATUS_LABELS[order.status]}</Badge>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="font-semibold">{format(order.totalKes)}</p>
+                      <Badge variant={orderStatusVariant(order.status)}>{ORDER_STATUS_LABELS[order.status]}</Badge>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" onClick={(e) => handleBuyAgain(e, order)} aria-label="Buy again">
+                      <RotateCcw className="size-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

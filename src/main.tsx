@@ -5,6 +5,8 @@ import { router } from './routes/router'
 import { AuthProvider } from './context/AuthContext'
 import { CurrencyProvider } from './context/CurrencyContext'
 import { CartProvider } from './context/CartContext'
+import { FavoritesProvider } from './context/FavoritesContext'
+import { PaymentModalProvider } from './context/PaymentModalContext'
 import { TooltipProvider } from './components/ui/tooltip'
 import { Toaster } from './components/ui/sonner'
 import { initSentry, SentryErrorBoundary } from './lib/sentry'
@@ -31,14 +33,18 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <SentryErrorBoundary fallback={<ErrorFallback />}>
       <AuthProvider>
-        <CurrencyProvider>
-          <CartProvider>
-            <TooltipProvider>
-              <RouterProvider router={router} />
-              <Toaster />
-            </TooltipProvider>
-          </CartProvider>
-        </CurrencyProvider>
+        <FavoritesProvider>
+          <CurrencyProvider>
+            <CartProvider>
+              <PaymentModalProvider>
+                <TooltipProvider>
+                  <RouterProvider router={router} />
+                  <Toaster />
+                </TooltipProvider>
+              </PaymentModalProvider>
+            </CartProvider>
+          </CurrencyProvider>
+        </FavoritesProvider>
       </AuthProvider>
     </SentryErrorBoundary>
   </React.StrictMode>

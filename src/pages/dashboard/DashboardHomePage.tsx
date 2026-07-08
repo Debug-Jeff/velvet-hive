@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
 import { Users, ShoppingCart, Package, AlertTriangle } from 'lucide-react'
 import StatCard from '@/components/dashboard/StatCard'
+import DateRangePicker, { type DateRangeValue } from '@/components/dashboard/DateRangePicker'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
@@ -39,6 +40,7 @@ export default function DashboardHomePage() {
   const [orders, setOrders] = useState<Order[] | null>(null)
   const [products, setProducts] = useState<Product[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [range, setRange] = useState<DateRangeValue>({})
 
   const canSeeUsers = user && roleHasPermission(user.roleName, 'users:manage')
   const canSeeOrders = user && roleHasPermission(user.roleName, 'orders:read:all')
@@ -63,7 +65,7 @@ export default function DashboardHomePage() {
       }
       if (canSeeOrders) {
         tasks.push(
-          ordersApi.listOrders().then((data) => {
+          ordersApi.listOrders(range).then((data) => {
             if (!cancelled) setOrders(data)
           }),
         )
@@ -76,7 +78,7 @@ export default function DashboardHomePage() {
     return () => {
       cancelled = true
     }
-  }, [canSeeUsers, canSeeOrders])
+  }, [canSeeUsers, canSeeOrders, range])
 
   const ordersByStatus = useMemo(() => {
     if (!orders) return []
@@ -123,7 +125,11 @@ export default function DashboardHomePage() {
       </div>
 
       {canSeeOrders && !isLoading && (revenueByDay.length > 0 || ordersByStatus.length > 0) && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <DateRangePicker value={range} onChange={setRange} />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
           {revenueByDay.length > 0 && (
             <Card>
               <CardHeader>
@@ -161,6 +167,7 @@ export default function DashboardHomePage() {
               </CardContent>
             </Card>
           )}
+          </div>
         </div>
       )}
 

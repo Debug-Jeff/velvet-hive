@@ -2,9 +2,19 @@ import { prisma } from '../../lib/prisma'
 import { ApiError } from '../../lib/apiError'
 import type { InventoryMovementType } from '../../generated/prisma/client'
 
-export function listMovements(productId?: number) {
+interface DateRange {
+  from?: Date
+  to?: Date
+}
+
+export function listMovements(productId?: number, range: DateRange = {}) {
+  const createdAtWhere =
+    range.from || range.to
+      ? { ...(range.from ? { gte: range.from } : {}), ...(range.to ? { lte: range.to } : {}) }
+      : undefined
+
   return prisma.inventoryMovement.findMany({
-    where: productId ? { productId } : undefined,
+    where: { ...(productId ? { productId } : {}), ...(createdAtWhere ? { createdAt: createdAtWhere } : {}) },
     include: {
       product: true,
       performedBy: { select: { id: true, firstName: true, lastName: true, email: true } },

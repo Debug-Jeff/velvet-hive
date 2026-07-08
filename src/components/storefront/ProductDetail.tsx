@@ -1,11 +1,15 @@
 import { useState } from 'react'
-import { Minus, Plus } from 'lucide-react'
+import { Minus, Plus, Heart } from 'lucide-react'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCurrency } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
+import { useFavorites } from '@/context/FavoritesContext'
+import { useAuth } from '@/context/AuthContext'
 import { optimizedImageUrl } from '@/lib/cloudinaryImage'
+import { cn } from '@/lib/utils'
 import type { Product } from '@/types/product'
 
 interface ProductDetailProps {
@@ -16,15 +20,38 @@ interface ProductDetailProps {
 export default function ProductDetail({ product, onClose }: ProductDetailProps) {
   const { format } = useCurrency()
   const { addToCart } = useCart()
+  const { user } = useAuth()
+  const { isFavorited, toggleFavorite } = useFavorites()
   const [quantity, setQuantity] = useState(1)
 
   if (!product) return null
+
+  const favorited = isFavorited(product.id)
+
+  function handleToggleFavorite() {
+    if (!user) {
+      toast.error('Sign in to save favorites')
+      return
+    }
+    toggleFavorite(product!.id)
+  }
 
   return (
     <Dialog open={!!product} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{product.name}</DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle>{product.name}</DialogTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleToggleFavorite}
+              aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Heart className={cn('size-4', favorited && 'fill-destructive text-destructive')} />
+            </Button>
+          </div>
           <DialogDescription>
             <Badge variant="outline">{product.category}</Badge>
           </DialogDescription>

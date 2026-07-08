@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useCart } from '@/context/CartContext'
 import { useCurrency } from '@/context/CurrencyContext'
+import { usePaymentModal } from '@/context/PaymentModalContext'
 import { ApiError } from '@/api/client'
 import * as ordersApi from '@/api/orders.api'
 
@@ -23,6 +24,7 @@ export default function CheckoutPage() {
   const { items, totalKes, clear } = useCart()
   const { format } = useCurrency()
   const navigate = useNavigate()
+  const { openForOrder } = usePaymentModal()
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -41,7 +43,8 @@ export default function CheckoutPage() {
         items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
       })
       clear()
-      navigate(`/checkout/${order.id}/pay`)
+      navigate('/', { replace: true })
+      openForOrder(order.id, 'choose')
     } catch (err) {
       form.setError('root', { message: err instanceof ApiError ? err.message : 'Could not place order' })
     }

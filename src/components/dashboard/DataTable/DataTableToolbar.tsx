@@ -16,6 +16,10 @@ interface DataTableToolbarProps {
   onFilterChange?: (value: string) => void
   filterOptions?: FilterOption[]
   filterPlaceholder?: string
+  filter2Value?: string
+  onFilter2Change?: (value: string) => void
+  filter2Options?: FilterOption[]
+  filter2Placeholder?: string
   action?: ReactNode
 }
 
@@ -27,6 +31,10 @@ export default function DataTableToolbar({
   onFilterChange,
   filterOptions,
   filterPlaceholder = 'Filter',
+  filter2Value,
+  onFilter2Change,
+  filter2Options,
+  filter2Placeholder = 'Filter',
   action,
 }: DataTableToolbarProps) {
   return (
@@ -48,6 +56,20 @@ export default function DataTableToolbar({
             </SelectTrigger>
             <SelectContent>
               {filterOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {filter2Options && onFilter2Change && (
+          <Select value={filter2Value} onValueChange={onFilter2Change}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder={filter2Placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {filter2Options.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>

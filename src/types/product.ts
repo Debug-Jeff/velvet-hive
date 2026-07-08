@@ -6,6 +6,7 @@ export interface Product {
   description: string
   imageUrl: string
   priceKes: number
+  costKes: number | null
   stockQuantity: number
   reorderThreshold: number
   isActive: boolean
@@ -20,6 +21,7 @@ export interface CreateProductInput {
   imageUrl: string
   description?: string
   priceKes: number
+  costKes?: number
   stockQuantity?: number
   reorderThreshold?: number
 }
@@ -30,5 +32,6 @@ export interface UpdateProductInput {
   imageUrl?: string
   description?: string
   priceKes?: number
+  costKes?: number
   reorderThreshold?: number
 }

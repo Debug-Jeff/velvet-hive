@@ -8,7 +8,7 @@ interface StatCardProps {
   value: number | string | null
   icon: LucideIcon
   isLoading?: boolean
-  accent?: 'default' | 'blue' | 'green' | 'amber'
+  accent?: 'default' | 'blue' | 'green' | 'amber' | 'red'
 }
 
 const ACCENT_STYLES: Record<NonNullable<StatCardProps['accent']>, string> = {
@@ -16,6 +16,7 @@ const ACCENT_STYLES: Record<NonNullable<StatCardProps['accent']>, string> = {
   blue: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   green: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  red: 'bg-red-500/10 text-red-600 dark:text-red-400',
 }
 
 export default function StatCard({ label, value, icon: Icon, isLoading, accent = 'default' }: StatCardProps) {

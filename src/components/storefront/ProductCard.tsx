@@ -1,12 +1,15 @@
 import type { MouseEvent } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCurrency } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
+import { useFavorites } from '@/context/FavoritesContext'
+import { useAuth } from '@/context/AuthContext'
 import { optimizedImageUrl } from '@/lib/cloudinaryImage'
+import { cn } from '@/lib/utils'
 import type { Product } from '@/types/product'
 
 interface ProductCardProps {
@@ -17,12 +20,24 @@ interface ProductCardProps {
 export default function ProductCard({ product, onClick }: ProductCardProps) {
   const { format } = useCurrency()
   const { addToCart } = useCart()
+  const { user } = useAuth()
+  const { isFavorited, toggleFavorite } = useFavorites()
   const isOutOfStock = product.stockQuantity <= 0
+  const favorited = isFavorited(product.id)
 
   function handleAdd(e: MouseEvent) {
     e.stopPropagation()
     addToCart(product)
     toast.success(`Added ${product.name} to cart`)
+  }
+
+  function handleToggleFavorite(e: MouseEvent) {
+    e.stopPropagation()
+    if (!user) {
+      toast.error('Sign in to save favorites')
+      return
+    }
+    toggleFavorite(product.id)
   }
 
   return (
@@ -36,6 +51,16 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           alt={product.name}
           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon-sm"
+          className="absolute right-2 top-2 rounded-full shadow-sm"
+          onClick={handleToggleFavorite}
+          aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <Heart className={cn('size-4', favorited && 'fill-destructive text-destructive')} />
+        </Button>
         {isOutOfStock && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
             <Badge variant="destructive">Out of stock</Badge>

@@ -4,6 +4,11 @@ export const idParamSchema = z.object({
   id: z.string().min(1),
 })
 
+export const listOrdersQuerySchema = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+})
+
 export const updateOrderStatusSchema = z.object({
   status: z.enum(['PROCESSING', 'SHIPPED', 'DELIVERED']),
 })

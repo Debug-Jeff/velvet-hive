@@ -15,6 +15,7 @@ export const createProductSchema = z.object({
   imageUrl: z.string().min(1),
   description: z.string().optional(),
   priceKes: z.coerce.number().int().nonnegative(),
+  costKes: z.coerce.number().int().nonnegative().optional(),
   stockQuantity: z.coerce.number().int().nonnegative().optional(),
   reorderThreshold: z.coerce.number().int().nonnegative().optional(),
 })
@@ -25,5 +26,6 @@ export const updateProductSchema = z.object({
   imageUrl: z.string().min(1).optional(),
   description: z.string().optional(),
   priceKes: z.coerce.number().int().nonnegative().optional(),
+  costKes: z.coerce.number().int().nonnegative().optional(),
   reorderThreshold: z.coerce.number().int().nonnegative().optional(),
 })

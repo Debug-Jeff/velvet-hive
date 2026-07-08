@@ -3,7 +3,13 @@ import { asyncHandler } from '../../lib/asyncHandler'
 import { validate } from '../../middleware/validate'
 import { requireAuth } from '../../middleware/requireAuth'
 import { requirePermission } from '../../middleware/requirePermission'
-import { cancelOrderSchema, createOrderSchema, idParamSchema, updateOrderStatusSchema } from './orders.schema'
+import {
+  cancelOrderSchema,
+  createOrderSchema,
+  idParamSchema,
+  listOrdersQuerySchema,
+  updateOrderStatusSchema,
+} from './orders.schema'
 import * as ordersController from './orders.controller'
 
 const router = Router()
@@ -16,7 +22,7 @@ router.post(
   asyncHandler(ordersController.createHandler),
 )
 
-router.get('/', requireAuth, asyncHandler(ordersController.listHandler))
+router.get('/', requireAuth, validate({ query: listOrdersQuerySchema }), asyncHandler(ordersController.listHandler))
 
 router.get(
   '/:id',
@@ -33,10 +39,12 @@ router.patch(
   asyncHandler(ordersController.updateStatusHandler),
 )
 
+// No requirePermission here - cancelHandler itself branches: staff with
+// orders:update:status can cancel any cancellable order (existing behavior),
+// customers without it can only cancel their own order before it's paid.
 router.post(
   '/:id/cancel',
   requireAuth,
-  requirePermission('orders:update:status'),
   validate({ params: idParamSchema, body: cancelOrderSchema }),
   asyncHandler(ordersController.cancelHandler),
 )

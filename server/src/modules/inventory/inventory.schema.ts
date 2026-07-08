@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 export const listMovementsQuerySchema = z.object({
   productId: z.coerce.number().int().positive().optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
 })
 
 export const createMovementSchema = z.object({

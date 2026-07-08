@@ -21,6 +21,12 @@ const createSchema = z.object({
   imageUrl: z.string().min(1, 'Required'),
   description: z.string().optional(),
   priceKes: z.coerce.number().int().nonnegative('Must be 0 or more'),
+  // Empty input must mean "not set" (undefined), not coerce to 0 - cost is
+  // meant to stay blank until an admin has real supplier data to enter.
+  costKes: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : v),
+    z.coerce.number().int().nonnegative().optional(),
+  ),
   stockQuantity: z.coerce.number().int().nonnegative().optional(),
   reorderThreshold: z.coerce.number().int().nonnegative().optional(),
 })
@@ -47,13 +53,24 @@ export default function ProductFormSheet({ open, onOpenChange, mode, product, on
     // conditionally at runtime - the validation itself is correct either way.
     resolver: zodResolver(isCreate ? createSchema : editSchema) as never,
     defaultValues: isCreate
-      ? { sku: '', name: '', category: CATEGORY_OPTIONS[0], imageUrl: '', description: '', priceKes: 0, stockQuantity: 0, reorderThreshold: 5 }
+      ? {
+          sku: '',
+          name: '',
+          category: CATEGORY_OPTIONS[0],
+          imageUrl: '',
+          description: '',
+          priceKes: 0,
+          costKes: undefined,
+          stockQuantity: 0,
+          reorderThreshold: 5,
+        }
       : {
           name: product?.name ?? '',
           category: product?.category ?? CATEGORY_OPTIONS[0],
           imageUrl: product?.imageUrl ?? '',
           description: product?.description ?? '',
           priceKes: product?.priceKes ?? 0,
+          costKes: product?.costKes ?? undefined,
           reorderThreshold: product?.reorderThreshold ?? 5,
         },
   })
@@ -177,6 +194,19 @@ export default function ProductFormSheet({ open, onOpenChange, mode, product, on
                 <FormLabel>Price (KES)</FormLabel>
                 <FormControl>
                   <Input type="number" min={0} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="costKes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cost (KES, optional)</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} placeholder="Not set" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

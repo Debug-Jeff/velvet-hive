@@ -49,16 +49,27 @@ export async function createOrder(input: CreateOrderInput) {
   })
 }
 
-export function listAllOrders() {
+interface DateRange {
+  from?: Date
+  to?: Date
+}
+
+function createdAtWhere({ from, to }: DateRange) {
+  if (!from && !to) return undefined
+  return { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) }
+}
+
+export function listAllOrders(range: DateRange = {}) {
   return prisma.order.findMany({
+    where: { createdAt: createdAtWhere(range) },
     orderBy: { createdAt: 'desc' },
     include: { items: { include: { product: true } }, payments: true },
   })
 }
 
-export function listOrdersForUser(userId: string) {
+export function listOrdersForUser(userId: string, range: DateRange = {}) {
   return prisma.order.findMany({
-    where: { userId },
+    where: { userId, createdAt: createdAtWhere(range) },
     orderBy: { createdAt: 'desc' },
     include: { items: { include: { product: true } }, payments: true },
   })

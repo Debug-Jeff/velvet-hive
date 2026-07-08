@@ -13,6 +13,7 @@ import PaymentMethodPage from '../pages/storefront/PaymentMethodPage'
 import PaymentPendingPage from '../pages/storefront/PaymentPendingPage'
 import MyOrdersPage from '../pages/storefront/MyOrdersPage'
 import CustomerOrderDetailPage from '../pages/storefront/OrderDetailPage'
+import WishlistPage from '../pages/storefront/WishlistPage'
 
 import LoginPage from '../pages/auth/LoginPage'
 import RegisterPage from '../pages/auth/RegisterPage'
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
           { path: 'checkout/:orderId/confirming', element: <PaymentPendingPage /> },
           { path: 'orders', element: <MyOrdersPage /> },
           { path: 'orders/:id', element: <CustomerOrderDetailPage /> },
+          { path: 'wishlist', element: <WishlistPage /> },
           { path: 'account', element: <ProfileSettingsPage /> },
         ],
       },

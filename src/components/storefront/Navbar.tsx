@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { LogOut, Package, Settings, ShoppingBasket, ShoppingCart, User } from 'lucide-react'
+import { Heart, LogOut, Package, Settings, ShoppingBasket, ShoppingCart, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -73,6 +73,11 @@ export default function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link to="/orders">
                       <Package /> My orders
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/wishlist">
+                      <Heart /> Wishlist
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

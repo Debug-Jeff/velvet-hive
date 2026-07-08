@@ -66,6 +66,7 @@ model User {
   inventoryMovements InventoryMovement[] @relation("PerformedBy")
   chatConversations  ChatConversation[]
   securityEvents     SecurityEvent[]
+  favorites          Favorite[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -117,17 +118,31 @@ model Product {
   description        String              @default("")
   imageUrl           String
   priceKes           Int
+  costKes            Int?
   stockQuantity      Int                 @default(0)
   reorderThreshold   Int                 @default(5)
   isActive           Boolean             @default(true)
   orderItems         OrderItem[]
   inventoryMovements InventoryMovement[]
+  favorites          Favorite[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
   @@index([category])
   @@index([isActive])
   @@map("products")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@map("favorites")
 }
 
 enum InventoryMovementType {
@@ -187,6 +202,7 @@ model Order {
 
   @@index([userId])
   @@index([status])
+  @@index([createdAt])
   @@map("orders")
 }
 

@@ -11,7 +11,10 @@ export async function createHandler(req: Request, res: Response) {
 export async function listHandler(req: Request, res: Response) {
   await ensurePermissionsCacheLoaded()
   const canReadAll = roleHasPermission(req.user!.roleId, 'orders:read:all')
-  const orders = canReadAll ? await ordersService.listAllOrders() : await ordersService.listOrdersForUser(req.user!.id)
+  const { from, to } = req.query as unknown as { from?: Date; to?: Date }
+  const orders = canReadAll
+    ? await ordersService.listAllOrders({ from, to })
+    : await ordersService.listOrdersForUser(req.user!.id, { from, to })
   res.json(orders)
 }
 
@@ -23,6 +26,23 @@ export async function updateStatusHandler(req: Request, res: Response) {
 
 export async function cancelHandler(req: Request, res: Response) {
   const id = req.params.id as string
+
+  await ensurePermissionsCacheLoaded()
+  const canManageAnyOrder = roleHasPermission(req.user!.roleId, 'orders:update:status')
+
+  if (!canManageAnyOrder) {
+    // Customer path: can only cancel their own order, and only before it's
+    // been paid - once paid, cancellation is a staff decision (it involves
+    // stock restoration and, per the flow, means "we're cancelling a paid
+    // order" which is a different situation than "I changed my mind before paying").
+    const existing = await ordersService.getOrderById(id)
+    if (!existing) throw ApiError.notFound('Order not found')
+    if (existing.userId !== req.user!.id) throw ApiError.forbidden()
+    if (existing.status !== 'PENDING_PAYMENT') {
+      throw ApiError.badRequest('You can only cancel an order before it has been paid', 'ORDER_STATUS_LOCKED')
+    }
+  }
+
   const order = await ordersService.cancelOrder(id, req.body.reason, req.user!.id)
   res.json(order)
 }

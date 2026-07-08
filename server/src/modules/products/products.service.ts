@@ -21,6 +21,7 @@ export function createProduct(data: {
   imageUrl: string
   description?: string
   priceKes: number
+  costKes?: number
   stockQuantity?: number
   reorderThreshold?: number
 }) {
@@ -35,6 +36,7 @@ export function updateProduct(
     imageUrl: string
     description: string
     priceKes: number
+    costKes: number
     reorderThreshold: number
   }>,
 ) {

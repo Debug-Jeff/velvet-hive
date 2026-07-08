@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RotateCcw, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import CancelOrderDialog from '@/components/dashboard/CancelOrderDialog'
 import { useCurrency } from '@/context/CurrencyContext'
+import { useCart } from '@/context/CartContext'
 import { ORDER_STATUS_LABELS, orderStatusVariant } from '@/lib/orderStatus'
 import { optimizedImageUrl } from '@/lib/cloudinaryImage'
 import * as ordersApi from '@/api/orders.api'
@@ -15,8 +18,12 @@ import type { Order } from '@/types/order'
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { format } = useCurrency()
+  const { addToCart } = useCart()
+  const navigate = useNavigate()
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -26,6 +33,30 @@ export default function OrderDetailPage() {
       .catch((err) => toast.error(err instanceof ApiError ? err.message : 'Failed to load order'))
       .finally(() => setIsLoading(false))
   }, [id])
+
+  async function handleCancel(reason: string) {
+    if (!order) return
+    setIsCancelling(true)
+    try {
+      const updated = await ordersApi.cancelOrder(order.id, reason)
+      setOrder(updated)
+      setCancelOpen(false)
+      toast.success('Order cancelled')
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to cancel order')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  function handleBuyAgain() {
+    if (!order) return
+    for (const item of order.items) {
+      addToCart(item.product, item.quantity)
+    }
+    toast.success('Items added to your cart')
+    navigate('/checkout')
+  }
 
   if (isLoading) {
     return (
@@ -37,6 +68,8 @@ export default function OrderDetailPage() {
   }
 
   if (!order) return null
+
+  const canCancel = order.status === 'PENDING_PAYMENT'
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 py-10">
@@ -88,6 +121,25 @@ export default function OrderDetailPage() {
           <p className="text-muted-foreground">{order.shippingAddress}</p>
         </CardContent>
       </Card>
+
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={handleBuyAgain}>
+          <RotateCcw /> Buy again
+        </Button>
+        {canCancel && (
+          <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setCancelOpen(true)}>
+            <X /> Cancel order
+          </Button>
+        )}
+      </div>
+
+      <CancelOrderDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        orderId={order.id}
+        isSubmitting={isCancelling}
+        onConfirm={handleCancel}
+      />
     </div>
   )
 }

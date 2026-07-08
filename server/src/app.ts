@@ -13,6 +13,7 @@ import paystackRoutes from './modules/payments/paystack/paystack.routes'
 import mpesaRoutes from './modules/payments/mpesa/mpesa.routes'
 import inventoryRoutes from './modules/inventory/inventory.routes'
 import securityRoutes from './modules/security/security.routes'
+import favoritesRoutes from './modules/favorites/favorites.routes'
 
 export function createApp() {
   const app = express()
@@ -36,6 +37,7 @@ export function createApp() {
   app.use('/api/payments/mpesa', mpesaRoutes)
   app.use('/api/inventory', inventoryRoutes)
   app.use('/api/security', securityRoutes)
+  app.use('/api/favorites', favoritesRoutes)
 
   app.use(notFoundHandler)
   app.use(errorHandler)

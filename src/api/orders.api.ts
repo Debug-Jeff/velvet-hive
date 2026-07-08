@@ -5,8 +5,12 @@ export function createOrder(input: CreateOrderInput) {
   return api.post<Order>('/orders', input)
 }
 
-export function listOrders() {
-  return api.get<Order[]>('/orders')
+export function listOrders(range?: { from?: Date; to?: Date }) {
+  const params = new URLSearchParams()
+  if (range?.from) params.set('from', range.from.toISOString())
+  if (range?.to) params.set('to', range.to.toISOString())
+  const query = params.toString()
+  return api.get<Order[]>(`/orders${query ? `?${query}` : ''}`)
 }
 
 export function getOrder(id: string) {

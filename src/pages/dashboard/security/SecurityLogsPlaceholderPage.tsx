@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import StatCard from '@/components/dashboard/StatCard'
 import DataTableToolbar from '@/components/dashboard/DataTable/DataTableToolbar'
+import DateRangePicker, { type DateRangeValue } from '@/components/dashboard/DateRangePicker'
+import ExportCsvButton from '@/components/dashboard/ExportCsvButton'
 import * as inventoryApi from '@/api/inventory.api'
 import * as ordersApi from '@/api/orders.api'
 import * as usersApi from '@/api/users.api'
@@ -75,12 +77,13 @@ export default function SecurityLogsPlaceholderPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
+  const [range, setRange] = useState<DateRangeValue>({})
 
   useEffect(() => {
     setIsLoading(true)
     Promise.allSettled([
-      inventoryApi.listInventoryMovements(),
-      ordersApi.listOrders(),
+      inventoryApi.listInventoryMovements(undefined, range),
+      ordersApi.listOrders(range),
       usersApi.listUsers(),
       securityApi.listSecurityEvents(),
     ])
@@ -88,11 +91,21 @@ export default function SecurityLogsPlaceholderPage() {
         if (movementsRes.status === 'fulfilled') setMovements(movementsRes.value)
         if (ordersRes.status === 'fulfilled') setOrders(ordersRes.value)
         if (usersRes.status === 'fulfilled') setInactiveUsers(usersRes.value.filter((u) => !u.isActive))
-        if (securityRes.status === 'fulfilled') setSecurityEvents(securityRes.value)
+        if (securityRes.status === 'fulfilled') {
+          // The security-events endpoint has no server-side date filter, so
+          // this one's narrowed client-side against the same range instead.
+          const events = securityRes.value.filter((e) => {
+            const t = new Date(e.createdAt).getTime()
+            if (range.from && t < range.from.getTime()) return false
+            if (range.to && t > range.to.getTime()) return false
+            return true
+          })
+          setSecurityEvents(events)
+        }
       })
       .catch((err) => toast.error(err instanceof ApiError ? err.message : 'Failed to load activity'))
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [range])
 
   const cancelledOrders = useMemo(() => orders.filter((o) => o.status === 'CANCELLED'), [orders])
   const purchaseOrders = useMemo(() => orders.filter((o) => PURCHASE_STATUSES.has(o.status)), [orders])
@@ -146,9 +159,12 @@ export default function SecurityLogsPlaceholderPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Security & Logs</h1>
-        <p className="text-sm text-muted-foreground">Sign-ins, purchases, cancellations, and inventory activity</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Security & Logs</h1>
+          <p className="text-sm text-muted-foreground">Sign-ins, purchases, cancellations, and inventory activity</p>
+        </div>
+        <DateRangePicker value={range} onChange={setRange} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -173,6 +189,13 @@ export default function SecurityLogsPlaceholderPage() {
             onFilterChange={setTypeFilter}
             filterOptions={TYPE_FILTER_OPTIONS}
             filterPlaceholder="Type"
+            action={
+              <ExportCsvButton
+                filename="activity-log.csv"
+                headers={['Type', 'Description', 'Date']}
+                rows={filtered.map((e) => [e.kind, e.description, new Date(e.timestamp).toLocaleString()])}
+              />
+            }
           />
 
           <div className="max-h-[32rem] space-y-3 overflow-y-auto">

@@ -1,5 +1,18 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Product } from '../types/product'
+
+const CART_STORAGE_KEY = 'velvet-hive-cart'
+
+function loadStoredCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
 
 export interface CartItem {
   product: Product
@@ -22,8 +35,12 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState<CartItem[]>(loadStoredCart)
   const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
+  }, [items])
 
   function addToCart(product: Product, quantity = 1) {
     setItems((prev) => {
