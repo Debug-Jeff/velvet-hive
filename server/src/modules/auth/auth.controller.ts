@@ -101,7 +101,12 @@ export async function googleCallbackHandler(req: Request, res: Response) {
   try {
     const result = await authService.handleGoogleCallback(code, req.ip)
     setRefreshCookie(res, result.refreshToken)
-    res.redirect(env.FRONTEND_URL)
+    // Redirect through /login rather than the bare homepage - LoginPage
+    // already has the "redirect to this role's default route once `user`
+    // populates" logic, so this reuses it instead of duplicating it, and
+    // works correctly for an already-authenticated arrival (not just a form
+    // submission), since it's driven by AuthContext's boot-time refresh.
+    res.redirect(`${env.FRONTEND_URL}/login`)
   } catch {
     res.redirect(`${env.FRONTEND_URL}/login?error=google_oauth_failed`)
   }
