@@ -1,3 +1,29 @@
-node_modules
-/node_modules/
-/node_modules/*
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code local project state
+.claude/
+
+# Scratch / throwaway scripts
+scratch-*.ts
+scratch-*.mjs
+scratch-*.js

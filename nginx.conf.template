@@ -1,0 +1,32 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Docker's embedded DNS - resolving via a variable defers lookup to
+    # request time instead of config-load time, so nginx still starts even
+    # if the backend service isn't resolvable yet (e.g. still starting up).
+    resolver 127.0.0.11 valid=30s;
+    set $backend "http://${BACKEND_HOST}:${BACKEND_PORT}";
+
+    # API and uploaded files are proxied to the backend service so the app's
+    # existing relative "/api" paths + same-origin cookies keep working
+    # without any frontend code changes.
+    location /api/ {
+        proxy_pass $backend/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /uploads/ {
+        proxy_pass $backend/uploads/;
+    }
+
+    # SPA fallback - client-side routing (react-router-dom) owns everything else
+    location / {
+        try_files $uri /index.html;
+    }
+}

@@ -1,0 +1,832 @@
+{
+  "info": {
+    "_postman_id": "velvet-hive-api-collection",
+    "name": "Velvet Hive API",
+    "description": "Full backend API for the Velvet Hive supermarket platform. See server/API.md for the full write-up (auth flow, RBAC matrix, payments flow, security notes). Import the paired 'Velvet Hive - Local' environment alongside this collection.\n\nSuggested run order: Health -> Auth (Register -> get OTP from Mailpit at localhost:8025 -> Verify Email) -> Products -> Orders -> Payments. Run 'Login - Super Admin' whenever you need to test Users/staff-only endpoints.\n\nAuth is set once at the collection level (Bearer {{accessToken}}) and inherited by every request - only requests that need a DIFFERENT token (Super Admin, Staff Admin) or NO token (public routes) override it explicitly, so it's obvious at a glance which routes are public.\n\nEvery request has a test script asserting the real, verified response shape (status code + key fields) - run the whole collection via Collection Runner or Newman and you get a pass/fail regression report, not just manual eyeballing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200 and ok', () => {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().status).to.eql('ok');", "});"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/health", "host": ["{{baseUrl}}"], "path": ["api", "health"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201, no tokens issued yet', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('message');",
+                  "  pm.expect(json).to.have.property('email');",
+                  "  pm.expect(json.accessToken).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\",\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Tester\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+            "description": "Public. Creates an unverified CUSTOMER account and emails a 6-digit OTP. Does NOT return tokens - verify email first.\n\nView the OTP by running Mailpit locally (docker run -p 1025:1025 -p 8025:8025 axllent/mailpit) and opening http://localhost:8025, or by checking server logs if SMTP isn't configured."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200, tokens issued', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a('string');",
+                  "  pm.expect(json.user.email).to.eql(pm.environment.get('customerEmail'));",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.environment.set('accessToken', pm.response.json().accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"code\": \"REPLACE_WITH_OTP_FROM_EMAIL\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/verify-email", "host": ["{{baseUrl}}"], "path": ["api", "auth", "verify-email"] },
+            "description": "Public. Consumes the OTP, marks the account verified, and auto-logs-in (issues tokens). This request's test script auto-captures the access token into {{accessToken}} for the rest of the collection."
+          },
+          "response": []
+        },
+        {
+          "name": "Resend Verification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200 with generic message', () => {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json()).to.have.property('message');", "});"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{customerEmail}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/resend-verification", "host": ["{{baseUrl}}"], "path": ["api", "auth", "resend-verification"] },
+            "description": "Public. Always returns the same generic message regardless of whether the account exists or is already verified (prevents account enumeration)."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 (or 403 if not verified yet)', () => {",
+                  "  pm.expect([200, 403]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.environment.set('accessToken', pm.response.json().accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Public. Returns 403 EMAIL_NOT_VERIFIED if the account hasn't completed email verification yet. Sets the refreshToken httpOnly cookie automatically (Postman's cookie jar handles this per-domain). Auto-captures {{accessToken}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200, role is SUPER_ADMIN', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().user.roleName).to.eql('SUPER_ADMIN');",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.environment.set('superAdminAccessToken', pm.response.json().accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Logs in as the seeded Super Admin (credentials from server/.env). Captures the token into {{superAdminAccessToken}} - used by the Users folder and anywhere you need full-permission access alongside a regular customer session in {{accessToken}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200 with generic message', () => {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json()).to.have.property('message');", "});"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{customerEmail}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "forgot-password"] },
+            "description": "Public. Same generic-response pattern as Resend Verification, for the same reason (no enumeration)."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200 (or 400 INVALID_CODE if the code is wrong/expired)', () => {", "  pm.expect([200, 400]).to.include(pm.response.code);", "});"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"code\": \"REPLACE_WITH_OTP_FROM_EMAIL\",\n  \"newPassword\": \"NewPostmanPass456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "reset-password"] },
+            "description": "Public. On success, revokes every existing refresh token for the account (forces re-login everywhere)."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["if (pm.response.code === 200) {", "  pm.environment.set('accessToken', pm.response.json().accessToken);", "  pm.test('new access token issued', () => pm.expect(pm.response.json().accessToken).to.be.a('string'));", "}"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh"] },
+            "description": "Reads the refreshToken cookie set by Login/Verify Email (Postman sends it automatically). Rotates the token - the old cookie becomes invalid immediately. Replaying an already-rotated-out cookie triggers family-wide revocation (401 REFRESH_TOKEN_REUSED)."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 204', () => pm.response.to.have.status(204));"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] },
+            "description": "Revokes the current refresh token cookie."
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200, returns user claims', () => {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().user).to.have.property('roleName');", "});"]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] },
+            "description": "Requires a valid access token (inherited from collection auth). Returns the decoded JWT claims for the caller."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users (Super Admin only)",
+      "description": "Every request in this folder requires permission `users:manage` - run 'Auth > Login - Super Admin' first.",
+      "item": [
+        {
+          "name": "List Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200, array with no passwordHash', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  pm.expect(JSON.stringify(json)).to.not.include('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superAdminAccessToken}}" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] },
+            "description": "Requires permission `users:manage` (Super Admin only). Run 'Login - Super Admin' first."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Staff User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201 (or 409 if already created)', () => {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set('newUserId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superAdminAccessToken}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new.admin@velvethive.test\",\n  \"password\": \"StaffPassword123\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Admin\",\n  \"roleName\": \"ADMIN\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] },
+            "description": "roleName must be one of SUPER_ADMIN | ADMIN | ACCOUNTS | INVENTORY_CLERK | CUSTOMER. The response is the created user object directly (not wrapped in a `user` key). Staff created this way are marked emailVerified=true immediately (trusted creation path, no OTP loop). Re-running this after the first time will 409 EMAIL_TAKEN, which is expected - the account already exists (409 means {{newUserId}} won't be re-captured, so run 'List Users' and copy the id manually if you get a 409 on a fresh environment)."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Staff Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.environment.set('staffAdminAccessToken', pm.response.json().accessToken);",
+                  "  pm.test('role is ADMIN', () => pm.expect(pm.response.json().user.roleName).to.eql('ADMIN'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new.admin@velvethive.test\",\n  \"password\": \"StaffPassword123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Run 'Create Staff User' above first. Logs in as a plain ADMIN (not Super Admin) so you can see the difference in practice: an ADMIN can create/update/delete products, but gets 403 on Users endpoints and on creating orders (only CUSTOMER has `orders:create`). Captures {{staffAdminAccessToken}} - use it as the Bearer token on Products requests to compare against {{superAdminAccessToken}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('newUserId')) {",
+                  "  throw new Error(\"{{newUserId}} is empty - run 'Create Staff User' above first (or set newUserId manually from 'List Users').\");",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superAdminAccessToken}}" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{newUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{newUserId}}"]
+            },
+            "description": "Body fields are all optional: firstName, lastName, phone, roleName, isActive. Setting isActive:false immediately blocks that user's future logins. Defaults to deactivating the staff user created by 'Create Staff User' ({{newUserId}}) - change the URL if you want to target someone else."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200, returns an array', () => {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json()).to.be.an('array');", "});"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Electronics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [{ "key": "category", "value": "Electronics", "description": "optional - omit or use 'All' for everything" }]
+            },
+            "description": "Public. No auth required."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product By Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200 with matching id', () => {", "  pm.response.to.have.status(200);", "  pm.expect(String(pm.response.json().id)).to.eql(pm.environment.get('productId'));", "});"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api", "products", "{{productId}}"] },
+            "description": "Public. 404 if not found or deactivated."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 201 (or 409 if SKU already used)', () => {", "  pm.expect([201, 409]).to.include(pm.response.code);", "});"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superAdminAccessToken}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-TEST-001\",\n  \"name\": \"Postman Test Product\",\n  \"category\": \"Electronics\",\n  \"imageUrl\": \"https://example.com/image.jpg\",\n  \"description\": \"Created from Postman\",\n  \"priceKes\": 2500,\n  \"stockQuantity\": 20\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api", "products"] },
+            "description": "Requires permission `products:create`. Works with either {{superAdminAccessToken}} or {{staffAdminAccessToken}} (both SUPER_ADMIN and ADMIN have this permission) - the header defaults to Super Admin's token."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superAdminAccessToken}}" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"priceKes\": 2999\n}" },
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api", "products", "{{productId}}"] },
+            "description": "Requires permission `products:update`. All body fields optional. Works with either {{superAdminAccessToken}} or {{staffAdminAccessToken}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 204 (no body)', () => pm.response.to.have.status(204));"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superAdminAccessToken}}" }] },
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api", "products", "{{productId}}"] },
+            "description": "Requires permission `products:delete`. Returns 204 No Content, not 200. Soft-delete only (isActive=false) - order history referencing this product is never destroyed."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201, totalKes matches price snapshot', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.totalKes).to.eql(json.items[0].priceAtPurchaseKes * json.items[0].quantity);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set('orderId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingName\": \"Postman Tester\",\n  \"shippingPhone\": \"0700000000\",\n  \"shippingAddress\": \"Nairobi, Kenya\",\n  \"items\": [\n    { \"productId\": {{productId}}, \"quantity\": 1 }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] },
+            "description": "Requires permission `orders:create` (Customer - use {{accessToken}}, the default). userId is taken from the JWT, never from the request body. Price is snapshotted server-side from the current product price. Auto-captures {{orderId}}."
+          },
+          "response": []
+        },
+        {
+          "name": "List Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200, returns an array', () => {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json()).to.be.an('array');", "});"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] },
+            "description": "Returns only the caller's own orders, unless their role has `orders:read:all` (Admin/Accounts/Super Admin), in which case it returns every order."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order By Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200 with matching id', () => {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().id).to.eql(pm.environment.get('orderId'));", "});"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}"] },
+            "description": "403 if you don't own this order and lack `orders:read:all`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments - Paystack",
+      "item": [
+        {
+          "name": "Initialize Payment",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('orderId')) {",
+                  "  throw new Error(\"{{orderId}} is empty - run 'Orders > Create Order' first.\");",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201 with an authorization_url', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json().authorizationUrl).to.be.a('string');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set('paystackReference', pm.response.json().reference);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/paystack/initialize",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "paystack", "initialize"]
+            },
+            "description": "Must own the order, and the order must still be PENDING_PAYMENT. Returns a real Paystack authorization_url (hits the live Paystack sandbox API with your test keys) - open it in a browser to pay with a Paystack test card. Auto-captures {{paystackReference}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Simulate Webhook (dev only)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('paystackReference')) {",
+                  "  throw new Error(\"{{paystackReference}} is empty - run 'Initialize Payment' first.\");",
+                  "}",
+                  "if (!pm.environment.get('paystackSecretKey') || pm.environment.get('paystackSecretKey').startsWith('<fill in')) {",
+                  "  throw new Error('paystackSecretKey is not set - fill it in from server/.env PAYSTACK_SECRET_KEY.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const CryptoJS = require('crypto-js');",
+                  "const secret = pm.environment.get('paystackSecretKey');",
+                  "const rawBody = pm.variables.replaceIn(pm.request.body.raw);",
+                  "const signature = CryptoJS.HmacSHA512(rawBody, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'x-paystack-signature', value: signature });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"charge.success\",\n  \"data\": {\n    \"reference\": \"{{paystackReference}}\",\n    \"id\": 999888777,\n    \"amount\": 100000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/paystack/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "paystack", "webhook"]
+            },
+            "description": "In production this is called by Paystack's servers only. This request lets you simulate that locally without a public callback URL: the pre-request script computes a REAL HMAC-SHA512 signature using {{paystackSecretKey}} (fill this in from server/.env first) over the exact raw body, matching what our webhook handler verifies - this actually drives the payment-confirmation transaction, it doesn't just return 200. Confirming this works marks the order PAID and decrements stock - check with 'Get Order By Id' afterward."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify By Reference",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["if (!pm.environment.get('paystackReference')) {", "  throw new Error(\"{{paystackReference}} is empty - run 'Initialize Payment' first.\");", "}"]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/paystack/verify/{{paystackReference}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "paystack", "verify", "{{paystackReference}}"]
+            },
+            "description": "Polling fallback for the frontend - calls Paystack's real Verify Transaction API and idempotently confirms payment if it succeeded. Must own the underlying order."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments - M-Pesa (Daraja)",
+      "item": [
+        {
+          "name": "Create Order (for M-Pesa)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set('mpesaOrderId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingName\": \"Postman Tester\",\n  \"shippingPhone\": \"0700000000\",\n  \"shippingAddress\": \"Nairobi, Kenya\",\n  \"items\": [\n    { \"productId\": {{productId}}, \"quantity\": 1 }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] },
+            "description": "An order can only be paid once (the backend correctly rejects a second payment attempt on an already-PAID order with 400 ORDER_NOT_PAYABLE). Since 'Orders > Create Order' already got paid via the Paystack simulator, this creates a SEPARATE order specifically for testing M-Pesa, captured into {{mpesaOrderId}} instead of {{orderId}} - so the two payment folders don't fight over the same order."
+          },
+          "response": []
+        },
+        {
+          "name": "STK Push",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["if (!pm.environment.get('mpesaOrderId')) {", "  throw new Error(\"{{mpesaOrderId}} is empty - run 'Create Order (for M-Pesa)' above first.\");", "}"]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201 with a checkoutRequestId', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json().checkoutRequestId).to.be.a('string');",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.environment.set('checkoutRequestId', pm.response.json().checkoutRequestId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{mpesaOrderId}}\",\n  \"phone\": \"254708374149\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/mpesa/stk-push",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "mpesa", "stk-push"]
+            },
+            "description": "Hits the real Safaricom Daraja sandbox. 254708374149 is Safaricom's own published sandbox test number - safe to use for testing, won't charge anything real. Must own the order. Response fields are merchantRequestId/checkoutRequestId/customerMessage (no generic 'message' field). Auto-captures {{checkoutRequestId}}.\n\nNote: Safaricom's real callback can't reach your machine locally without a public HTTPS tunnel (ngrok) matching DARAJA_CALLBACK_BASE_URL in .env - use 'Simulate Callback' below to exercise that path locally instead."
+          },
+          "response": []
+        },
+        {
+          "name": "Simulate Callback (dev only)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["if (!pm.environment.get('checkoutRequestId')) {", "  throw new Error(\"{{checkoutRequestId}} is empty - run 'STK Push' first.\");", "}"]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Body\": {\n    \"stkCallback\": {\n      \"MerchantRequestID\": \"test-merchant-req\",\n      \"CheckoutRequestID\": \"{{checkoutRequestId}}\",\n      \"ResultCode\": 0,\n      \"ResultDesc\": \"The service request is processed successfully.\",\n      \"CallbackMetadata\": {\n        \"Item\": [\n          { \"Name\": \"Amount\", \"Value\": 100 },\n          { \"Name\": \"MpesaReceiptNumber\", \"Value\": \"TEST123XYZ\" },\n          { \"Name\": \"PhoneNumber\", \"Value\": 254708374149 }\n        ]\n      }\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/mpesa/callback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "mpesa", "callback"]
+            },
+            "description": "In production this is called by Safaricom's servers only, and isn't cryptographically signed - our handler only ever transitions an existing PENDING payment matched by CheckoutRequestID, never creates new state from it. Use this to simulate a successful STK Push callback locally. Set ResultCode to a non-zero value to simulate a failed/cancelled payment instead."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,51 +1,41 @@
 # Velvet Hive
 
-A small ecommerce storefront — product browsing, search, category filtering,
-a product detail view, and a shopping cart with quantity controls.
+A full-stack supermarket e-commerce platform: a customer storefront plus role-based dashboards for Super Admin, Admin, Accounts, and Inventory Clerk staff.
 
-## Tech stack
+## Stack
 
-- React + TypeScript
-- lucide-react for icons
-- Plain CSS with custom properties (no framework) — see `styles/global.css`
-  for the design tokens
-- Poppins (Google Fonts) as the primary typeface
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui, react-router-dom
+- **Backend**: Node.js, Express, TypeScript, Prisma ORM, PostgreSQL
+- **Auth**: JWT + rotating refresh tokens, DB-backed RBAC, Google OAuth
+- **Payments**: Paystack (cards), Safaricom Daraja (M-Pesa STK Push)
+- **Email**: Nodemailer
 
-## Setup
+## Running locally
 
-```
+Requires Node.js 20+ and a PostgreSQL database (or use Docker Compose, which provides one).
+
+```bash
+# Backend
+cd server
 npm install
-npm run dev
+cp .env.example .env   # fill in your own values
+npx prisma migrate dev
+npx prisma db seed
+cd ..
+
+# Frontend + backend together
+npm install
+npm run dev:all         # or: npm run dev:split (Windows Terminal split panes)
 ```
 
-The app expects a `/api/products` endpoint returning an array of:
+Or with Docker:
 
-```ts
-{
-  id: number
-  name: string
-  price: number
-  category: string
-  image: string
-  description?: string  
-}
+```bash
+docker compose up --build
 ```
 
-## Folder structure
+Frontend: `http://localhost:5173` · Backend: `http://localhost:3001`
 
-```
-src/
-  App.tsx
-  styles/
-    global.css       // variables, reset, page layout, doodle background
-    utils.css         // shared button/input/badge/quantity-stepper classes
-  components/
-    Navbar.tsx / .css
-    Hero.tsx / .css
-    ProductList.tsx / .css
-    ProductCard.tsx / .css
-    ProductDetail.tsx / .css
-    Cart.tsx / .css
-    Checkout.tsx / .css
-```
+## Docs
 
+Backend architecture, RBAC matrix, and full endpoint reference: [`server/API.md`](server/API.md).

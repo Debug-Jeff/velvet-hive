@@ -1,0 +1,295 @@
+// Prisma schema for the Velvet Hive supermarket platform.
+// See plan doc for the full architecture rationale.
+
+generator client {
+  provider      = "prisma-client"
+  output        = "../src/generated/prisma"
+  moduleFormat  = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── RBAC ─────────────────────────
+
+model Role {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique // SUPER_ADMIN | ADMIN | ACCOUNTS | INVENTORY_CLERK | CUSTOMER
+  description     String?
+  users           User[]
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("roles")
+}
+
+model Permission {
+  id              Int              @id @default(autoincrement())
+  key             String           @unique // "products:create", "inventory:adjust", ...
+  description     String?
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  passwordHash       String
+  firstName          String
+  lastName           String
+  phone              String?
+  avatarUrl          String?
+  googleId           String?             @unique
+  roleId             Int
+  role               Role                @relation(fields: [roleId], references: [id])
+  isActive           Boolean             @default(true)
+  emailVerified      Boolean             @default(false)
+  lastLoginAt        DateTime?
+  lastLoginIp        String?
+  refreshTokens      RefreshToken[]
+  verificationCodes  VerificationCode[]
+  orders             Order[]
+  inventoryMovements InventoryMovement[] @relation("PerformedBy")
+  chatConversations  ChatConversation[]
+  securityEvents     SecurityEvent[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([roleId])
+  @@map("users")
+}
+
+enum VerificationCodeType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+model VerificationCode {
+  id         String               @id @default(cuid())
+  userId     String
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       VerificationCodeType
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime             @default(now())
+
+  @@index([userId, type])
+  @@map("verification_codes")
+}
+
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  createdByIp  String?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ───────────────────── Catalog / Inventory ─────────────────────
+
+model Product {
+  id                 Int                 @id @default(autoincrement())
+  sku                String              @unique
+  name               String
+  category           String
+  description        String              @default("")
+  imageUrl           String
+  priceKes           Int
+  stockQuantity      Int                 @default(0)
+  reorderThreshold   Int                 @default(5)
+  isActive           Boolean             @default(true)
+  orderItems         OrderItem[]
+  inventoryMovements InventoryMovement[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@map("products")
+}
+
+enum InventoryMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+model InventoryMovement {
+  id                String                @id @default(cuid())
+  productId         Int
+  product           Product               @relation(fields: [productId], references: [id], onDelete: Restrict)
+  type              InventoryMovementType
+  quantity          Int
+  reason            String
+  referenceOrderId  String?
+  order             Order?                @relation(fields: [referenceOrderId], references: [id])
+  performedByUserId String
+  performedBy       User                  @relation("PerformedBy", fields: [performedByUserId], references: [id])
+  stockAfter        Int
+  createdAt         DateTime              @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("inventory_movements")
+}
+
+// ───────────────────── Orders / Payments ─────────────────────
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  PAYMENT_FAILED
+  REFUNDED
+}
+
+model Order {
+  id                 String              @id @default(cuid())
+  userId             String
+  user               User                @relation(fields: [userId], references: [id])
+  status             OrderStatus         @default(PENDING_PAYMENT)
+  totalKes           Int
+  shippingName       String
+  shippingPhone      String
+  shippingAddress    String
+  cancellationReason String?
+  cancelledAt        DateTime?
+  items              OrderItem[]
+  payments           Payment[]
+  inventoryMovements InventoryMovement[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                 String  @id @default(cuid())
+  orderId            String
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId          Int
+  product            Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity           Int
+  priceAtPurchaseKes Int
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+enum PaymentMethod {
+  CARD
+  MPESA
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  orderId               String
+  order                 Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method                PaymentMethod
+  status                PaymentStatus @default(INITIATED)
+  amountKes             Int
+  providerRef           String?       @unique
+  providerTransactionId String?
+  rawPayload            Json?
+  failureReason         String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([providerRef])
+  @@map("payments")
+}
+
+// ───────────────────────── AI Chat ─────────────────────────
+
+model ChatConversation {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+  @@map("chat_conversations")
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+model ChatMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           ChatRole
+  content        String           @db.Text
+  toolCalls      Json?
+  createdAt      DateTime         @default(now())
+
+  @@index([conversationId])
+  @@map("chat_messages")
+}
+
+enum SecurityEventType {
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  SUSPICIOUS_LOGIN
+}
+
+model SecurityEvent {
+  id        String            @id @default(cuid())
+  type      SecurityEventType
+  userId    String?
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String?
+  ip        String?
+  userAgent String?
+  detail    String?
+  createdAt DateTime          @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@map("security_events")
+}

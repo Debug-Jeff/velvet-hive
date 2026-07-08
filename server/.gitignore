@@ -1,0 +1,34 @@
+node_modules/
+dist/
+
+# Environment variables - never commit real secrets
+.env
+.env.local
+.env.*.local
+
+# Prisma-generated client (regenerated via `prisma generate`)
+/src/generated/prisma
+
+# User-uploaded content
+uploads/*
+!uploads/.gitkeep
+
+# Old raw SQL dumps from before the Prisma migration - not needed in the repo
+backups/
+
+# Postman VS Code extension local workspace sync (mirrors the real
+# postman/VelvetHive.postman_collection.json + .environment.json on disk)
+.postman/
+postman/collections/
+postman/environments/
+postman/flows/
+postman/globals/
+postman/mocks/
+postman/specs/
+
+# Scratch / throwaway scripts
+scratch-*.ts
+scratch-*.mjs
+scratch-*.js
+
+*.log
