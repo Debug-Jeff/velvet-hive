@@ -37,8 +37,14 @@ const envSchema = z.object({
 
   // Defaults to Cloudflare's official always-pass test secret so local dev
   // works with zero setup - swap for the real secret in production or this
-  // provides no actual bot protection.
-  TURNSTILE_SECRET_KEY: z.string().default('1x0000000000000000000000000000000AA'),
+  // provides no actual bot protection. The .transform also catches
+  // TURNSTILE_SECRET_KEY= left blank in .env - dotenv sets that to an empty
+  // string (not absent), which z.string().default() alone would NOT catch,
+  // since default() only applies when the key is missing entirely.
+  TURNSTILE_SECRET_KEY: z
+    .string()
+    .default('1x0000000000000000000000000000000AA')
+    .transform((v) => v || '1x0000000000000000000000000000000AA'),
 
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),

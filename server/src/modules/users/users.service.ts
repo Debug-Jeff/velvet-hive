@@ -8,6 +8,7 @@ const userListSelect = {
   firstName: true,
   lastName: true,
   phone: true,
+  avatarUrl: true,
   isActive: true,
   createdAt: true,
   role: { select: { id: true, name: true } },

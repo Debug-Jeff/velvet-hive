@@ -7,10 +7,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import DataTable, { type DataTableColumn } from '@/components/dashboard/DataTable/DataTable'
 import DataTableToolbar from '@/components/dashboard/DataTable/DataTableToolbar'
 import ConfirmDialog from '@/components/dashboard/ConfirmDialog'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import UserFormSheet from './UserFormSheet'
 import * as usersApi from '@/api/users.api'
 import { ApiError } from '@/api/client'
 import type { RoleName, StaffUser } from '@/types/user'
+
+function initials(firstName?: string, lastName?: string, email?: string) {
+  if (firstName || lastName) return `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.toUpperCase()
+  return email?.[0]?.toUpperCase() ?? '?'
+}
 
 const ROLE_FILTER_OPTIONS = [
   { label: 'All roles', value: 'ALL' },
@@ -117,10 +123,10 @@ export default function UsersTablePage() {
       header: 'Name',
       render: (u) => (
         <div className="flex items-center gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
-            {u.firstName[0]}
-            {u.lastName[0]}
-          </div>
+          <Avatar>
+            <AvatarImage src={u.avatarUrl ?? undefined} alt="" />
+            <AvatarFallback>{initials(u.firstName, u.lastName, u.email)}</AvatarFallback>
+          </Avatar>
           <div>
             <div className="font-medium">
               {u.firstName} {u.lastName}

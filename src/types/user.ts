@@ -17,6 +17,7 @@ export interface StaffUser {
   firstName: string
   lastName: string
   phone: string | null
+  avatarUrl: string | null
   isActive: boolean
   createdAt: string
   role: { id: number; name: RoleName }

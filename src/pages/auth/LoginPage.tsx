@@ -34,11 +34,7 @@ export default function LoginPage() {
     defaultValues: { email: '', password: '' },
   })
 
-  // Redirect once the context's `user` has actually committed, rather than
-  // immediately after the login() promise resolves - navigating in the same
-  // tick as setUser() can race ahead of the context update reaching route
-  // guards further down the tree, which briefly renders them with a stale
-  // (null) user and shows Forbidden until a manual refresh fixes it.
+
   useEffect(() => {
     if (!user) return
     const redirect = searchParams.get('redirect')
