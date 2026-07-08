@@ -79,6 +79,8 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
 
   - type: web
     name: velvet-hive-frontend
@@ -90,6 +92,8 @@ services:
         sync: false
       - key: VITE_CLOUDINARY_CLOUD_NAME
         value: ybbx669q
+      - key: VITE_TURNSTILE_SITE_KEY
+        sync: false
     routes:
       # Same-origin API, proxied to the backend service so cookies and the
       # app's existing relative "/api" paths keep working unchanged. Uploaded

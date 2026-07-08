@@ -3,6 +3,7 @@ import { asyncHandler } from '../../lib/asyncHandler'
 import { validate } from '../../middleware/validate'
 import { requireAuth } from '../../middleware/requireAuth'
 import { credentialsLimiter } from '../../middleware/rateLimit'
+import { requireTurnstile } from '../../middleware/turnstile'
 import { avatarUpload } from '../../lib/avatarUpload'
 import {
   changePasswordSchema,
@@ -18,7 +19,13 @@ import * as authController from './auth.controller'
 
 const router = Router()
 
-router.post('/register', credentialsLimiter, validate({ body: registerSchema }), asyncHandler(authController.registerHandler))
+router.post(
+  '/register',
+  credentialsLimiter,
+  requireTurnstile,
+  validate({ body: registerSchema }),
+  asyncHandler(authController.registerHandler),
+)
 router.post('/verify-email', credentialsLimiter, validate({ body: verifyEmailSchema }), asyncHandler(authController.verifyEmailHandler))
 router.post(
   '/resend-verification',
@@ -26,10 +33,17 @@ router.post(
   validate({ body: resendVerificationSchema }),
   asyncHandler(authController.resendVerificationHandler),
 )
-router.post('/login', credentialsLimiter, validate({ body: loginSchema }), asyncHandler(authController.loginHandler))
+router.post(
+  '/login',
+  credentialsLimiter,
+  requireTurnstile,
+  validate({ body: loginSchema }),
+  asyncHandler(authController.loginHandler),
+)
 router.post(
   '/forgot-password',
   credentialsLimiter,
+  requireTurnstile,
   validate({ body: forgotPasswordSchema }),
   asyncHandler(authController.forgotPasswordHandler),
 )

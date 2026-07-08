@@ -10,7 +10,11 @@ interface MessageResponse {
   message: string
 }
 
-export function register(input: { email: string; password: string; firstName: string; lastName: string; phone?: string }) {
+export function register(
+  input: { email: string; password: string; firstName: string; lastName: string; phone?: string } & {
+    turnstileToken: string
+  },
+) {
   return api.post<{ message: string; email: string }>('/auth/register', input, { skipAuthRetry: true })
 }
 
@@ -22,12 +26,12 @@ export function resendVerification(email: string) {
   return api.post<MessageResponse>('/auth/resend-verification', { email }, { skipAuthRetry: true })
 }
 
-export function login(input: { email: string; password: string }) {
+export function login(input: { email: string; password: string; turnstileToken: string }) {
   return api.post<AuthResponse>('/auth/login', input, { skipAuthRetry: true })
 }
 
-export function forgotPassword(email: string) {
-  return api.post<MessageResponse>('/auth/forgot-password', { email }, { skipAuthRetry: true })
+export function forgotPassword(email: string, turnstileToken: string) {
+  return api.post<MessageResponse>('/auth/forgot-password', { email, turnstileToken }, { skipAuthRetry: true })
 }
 
 export function resetPassword(input: { email: string; code: string; newPassword: string }) {

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import PasswordInput from '@/components/auth/PasswordInput'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
+import TurnstileWidget from '@/components/TurnstileWidget'
 import { useAuth } from '@/context/AuthContext'
 import { ApiError } from '@/api/client'
 
@@ -26,6 +28,7 @@ type RegisterValues = z.infer<typeof registerSchema>
 export default function RegisterPage() {
   const { register: registerUser } = useAuth()
   const navigate = useNavigate()
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -34,7 +37,7 @@ export default function RegisterPage() {
 
   async function onSubmit(values: RegisterValues) {
     try {
-      const { email } = await registerUser(values)
+      const { email } = await registerUser({ ...values, turnstileToken })
       toast.success('Check your email for a verification code')
       navigate(`/verify-email?email=${encodeURIComponent(email)}`)
     } catch (err) {
@@ -149,7 +152,13 @@ export default function RegisterPage() {
             </Alert>
           )}
 
-          <Button type="submit" className="h-11 w-full text-base" disabled={form.formState.isSubmitting}>
+          <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+
+          <Button
+            type="submit"
+            className="h-11 w-full text-base"
+            disabled={form.formState.isSubmitting || !turnstileToken}
+          >
             {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
             {form.formState.isSubmitting ? 'Creating account…' : 'Create account'}
           </Button>

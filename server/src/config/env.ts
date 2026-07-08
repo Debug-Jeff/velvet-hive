@@ -35,6 +35,11 @@ const envSchema = z.object({
   // Optional - error tracking is simply disabled if left blank
   SENTRY_DSN: z.string().default(''),
 
+  // Defaults to Cloudflare's official always-pass test secret so local dev
+  // works with zero setup - swap for the real secret in production or this
+  // provides no actual bot protection.
+  TURNSTILE_SECRET_KEY: z.string().default('1x0000000000000000000000000000000AA'),
+
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
   SMTP_USER: z.string().default(''),

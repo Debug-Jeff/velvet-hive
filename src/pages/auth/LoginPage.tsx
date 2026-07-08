@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import PasswordInput from '@/components/auth/PasswordInput'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
+import TurnstileWidget from '@/components/TurnstileWidget'
 import { useAuth } from '@/context/AuthContext'
 import { getDefaultRouteForRole } from '@/routes/roleLanding'
 import { ApiError } from '@/api/client'
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [formError, setFormError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -47,7 +49,7 @@ export default function LoginPage() {
   async function onSubmit(values: LoginFormValues) {
     setFormError('')
     try {
-      await login(values.email, values.password)
+      await login(values.email, values.password, turnstileToken)
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setFormError("That email and password don't match our records.")
@@ -117,7 +119,13 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <Button type="submit" className="h-11 w-full text-base" disabled={form.formState.isSubmitting}>
+          <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+
+          <Button
+            type="submit"
+            className="h-11 w-full text-base"
+            disabled={form.formState.isSubmitting || !turnstileToken}
+          >
             {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
             {form.formState.isSubmitting ? 'Signing in…' : 'Sign in'}
           </Button>

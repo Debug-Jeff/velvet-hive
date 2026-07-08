@@ -7,8 +7,12 @@ import type { AuthUser } from '../types/user'
 interface AuthContextValue {
   user: AuthUser | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<AuthUser>
-  register: (input: { email: string; password: string; firstName: string; lastName: string; phone?: string }) => Promise<{ email: string }>
+  login: (email: string, password: string, turnstileToken: string) => Promise<AuthUser>
+  register: (
+    input: { email: string; password: string; firstName: string; lastName: string; phone?: string } & {
+      turnstileToken: string
+    },
+  ) => Promise<{ email: string }>
   verifyEmail: (email: string, code: string) => Promise<AuthUser>
   logout: () => Promise<void>
   updateProfile: (input: { firstName?: string; lastName?: string; phone?: string }) => Promise<AuthUser>
@@ -71,15 +75,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  async function login(email: string, password: string) {
-    const res = await authApi.login({ email, password })
+  async function login(email: string, password: string, turnstileToken: string) {
+    const res = await authApi.login({ email, password, turnstileToken })
     setAccessToken(res.accessToken)
     setUser(res.user)
     broadcastLogin()
     return res.user
   }
 
-  async function register(input: { email: string; password: string; firstName: string; lastName: string; phone?: string }) {
+  async function register(
+    input: { email: string; password: string; firstName: string; lastName: string; phone?: string } & {
+      turnstileToken: string
+    },
+  ) {
     return authApi.register(input)
   }
 

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import TurnstileWidget from '@/components/TurnstileWidget'
 import * as authApi from '@/api/auth.api'
 
 const schema = z.object({ email: z.string().email('Enter a valid email address') })
@@ -16,9 +18,10 @@ type Values = z.infer<typeof schema>
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: '' } })
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   async function onSubmit(values: Values) {
-    await authApi.forgotPassword(values.email)
+    await authApi.forgotPassword(values.email, turnstileToken)
     toast.success('If that account exists, a reset code is on its way')
     navigate(`/reset-password?email=${encodeURIComponent(values.email)}`)
   }
@@ -48,7 +51,13 @@ export default function ForgotPasswordPage() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="h-11 w-full text-base" disabled={form.formState.isSubmitting}>
+            <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+
+            <Button
+              type="submit"
+              className="h-11 w-full text-base"
+              disabled={form.formState.isSubmitting || !turnstileToken}
+            >
               {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
               {form.formState.isSubmitting ? 'Sending…' : 'Send reset code'}
             </Button>
