@@ -12,12 +12,10 @@ services:
     dockerContext: ./server
     plan: free
     healthCheckPath: /api/health
-    # Runs once per deploy, before the new instance takes traffic, inside
-    # Render's own network (so no external-connection timeout risk).
-    # TEMPORARY: seeding is bundled in here for the first deploy only - once
-    # confirmed working, remove "&& npx --yes tsx prisma/seed.ts" so routine
-    # deploys only run migrations, not a re-seed.
-    preDeployCommand: npx prisma migrate deploy && npx --yes tsx prisma/seed.ts
+    # Note: preDeployCommand does not appear to run on Render's free plan
+    # (confirmed - deploy logs show no trace of it executing). Seeding is
+    # done as a one-off from a local machine instead - see server/API.md.
+    preDeployCommand: npx prisma migrate deploy
     envVars:
       - key: DATABASE_URL
         fromDatabase:

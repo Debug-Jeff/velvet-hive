@@ -3,6 +3,7 @@ import { env } from './config/env'
 import { startScheduledJobs } from './lib/scheduler'
 import { prisma } from './lib/prisma'
 import { initSentry } from './lib/sentry'
+import { autoSeedIfEmpty } from './lib/autoSeed'
 
 initSentry()
 
@@ -10,6 +11,7 @@ const app = createApp()
 
 const server = app.listen(env.PORT, () => {
   console.log(`Server running on http://localhost:${env.PORT}`)
+  void autoSeedIfEmpty()
 })
 
 const schedulerHandle = startScheduledJobs()

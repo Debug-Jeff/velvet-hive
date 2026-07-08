@@ -242,6 +242,16 @@ To run frontend + backend together, see the root `README.md` (`npm run dev:all` 
 
 The server shuts down gracefully on `SIGINT`/`SIGTERM` (stops accepting connections, disconnects Prisma, clears the scheduler, force-exits after 10s if something hangs) so the port is always freed — no more stray processes holding `:3001`.
 
-**Migrations on Render**: `render.yaml`'s backend service has `preDeployCommand: npx prisma migrate deploy`, which Render runs once per deploy before the new instance takes traffic — the schema can never drift ahead of a deploy. This does *not* seed data (seeding isn't routine, it's a one-time bootstrap) and it only takes effect on deploys made *after* this was added to the yaml — a deployment that predates it needs migrations applied manually once (see below).
+**Migrations on Render**: `render.yaml`'s backend service declares `preDeployCommand: npx prisma migrate deploy`. In testing, **this did not actually run** on Render's free plan (deploy logs showed no trace of it at all) — don't assume it's applying migrations for you on this plan; verify against the deploy log, and apply migrations manually (below) if it isn't running.
 
-**Seeding a container/Render deployment**: the production image is intentionally lean and doesn't include `tsx` (a devDependency), so `npx prisma db seed` fails there with `spawn tsx ENOENT`. Either run `npx prisma migrate deploy && npx prisma db seed` from your local machine against the deployment's `DATABASE_URL` (e.g. Render's database "External Connection String"), or run `npx --yes tsx prisma/seed.ts` inside the container/service shell (fetches `tsx` on demand). Verified working via `docker compose exec backend npx --yes tsx prisma/seed.ts`.
+**Seeding a Render deployment - and a real gotcha**: the production image is intentionally lean and doesn't include `tsx` (a devDependency), so `npx prisma db seed` fails there with `spawn tsx ENOENT` - not the main issue, though. The bigger one: `seed.ts` originally used `prisma.<model>.upsert(...)` throughout, and **every `upsert()` call opens an implicit transaction**. Against Render's Postgres over an **external** connection, that consistently failed on the very first upsert with `P1017 ConnectionClosed` / `Server has closed the connection` - reproduced identically from two unrelated networks/machines, always at the same call, never partway through. `prisma migrate deploy` (no transactions) and the deployed app's own plain queries (e.g. `GET /api/products`, also no transaction) both worked fine over the same connection, which points at Render's external-connection path (likely a pooler in front of Postgres) not fully supporting how Prisma 7's driver-adapter engine opens transactions - not a bug in the app itself, and not a problem for the running app, which connects over Render's *internal* network and uses real `$transaction()` blocks safely elsewhere (payments, cancellations, inventory movements).
+
+The fix: `seed.ts` was rewritten to avoid `upsert()` entirely, using plain `findUnique` + `create`/`update` instead (each a separate, non-transactional round trip). With that change, seeding works fine over an external connection:
+
+```
+cd server
+$env:DATABASE_URL = "<Render database's External Connection String>"   # PowerShell
+npx prisma db seed
+```
+
+Don't put that URL in `server/.env` - set it for the one command/session only.
