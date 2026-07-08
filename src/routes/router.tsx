@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import StorefrontLayout from '../layouts/StorefrontLayout'
 import AuthLayout from '../layouts/AuthLayout'
@@ -19,16 +20,20 @@ import VerifyEmailPage from '../pages/auth/VerifyEmailPage'
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
 
-import DashboardHomePage from '../pages/dashboard/DashboardHomePage'
-import UsersTablePage from '../pages/dashboard/users/UsersTablePage'
-import ProductsTablePage from '../pages/dashboard/products/ProductsTablePage'
-import OrdersTablePage from '../pages/dashboard/orders/OrdersTablePage'
-import OrderDetailPage from '../pages/dashboard/orders/OrderDetailPage'
-import InventoryTablePage from '../pages/dashboard/inventory/InventoryTablePage'
-import FinancialReportPage from '../pages/dashboard/reports/FinancialReportPage'
-import StockReportPage from '../pages/dashboard/reports/StockReportPage'
-import SecurityLogsPlaceholderPage from '../pages/dashboard/security/SecurityLogsPlaceholderPage'
 import ProfileSettingsPage from '../pages/shared/ProfileSettingsPage'
+
+// Staff-dashboard-only pages are lazy-loaded so their code (including the
+// fairly heavy recharts dependency) never ends up in the bundle a customer
+// downloads just to browse the storefront.
+const DashboardHomePage = lazy(() => import('../pages/dashboard/DashboardHomePage'))
+const UsersTablePage = lazy(() => import('../pages/dashboard/users/UsersTablePage'))
+const ProductsTablePage = lazy(() => import('../pages/dashboard/products/ProductsTablePage'))
+const OrdersTablePage = lazy(() => import('../pages/dashboard/orders/OrdersTablePage'))
+const OrderDetailPage = lazy(() => import('../pages/dashboard/orders/OrderDetailPage'))
+const InventoryTablePage = lazy(() => import('../pages/dashboard/inventory/InventoryTablePage'))
+const FinancialReportPage = lazy(() => import('../pages/dashboard/reports/FinancialReportPage'))
+const StockReportPage = lazy(() => import('../pages/dashboard/reports/StockReportPage'))
+const SecurityLogsPlaceholderPage = lazy(() => import('../pages/dashboard/security/SecurityLogsPlaceholderPage'))
 
 import ForbiddenPage from '../pages/ForbiddenPage'
 import NotFoundPage from '../pages/NotFoundPage'

@@ -275,7 +275,7 @@ export async function updateOwnProfile(
 }
 
 export async function updateAvatar(userId: string, file: Express.Multer.File) {
-  const avatarUrl = saveAvatarFile(userId, file)
+  const avatarUrl = await saveAvatarFile(userId, file)
   const user = await prisma.user.update({
     where: { id: userId },
     data: { avatarUrl },

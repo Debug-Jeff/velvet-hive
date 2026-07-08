@@ -1,4 +1,3 @@
-import path from 'node:path'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -28,17 +27,6 @@ export function createApp() {
   app.use(generalLimiter)
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
-
-  // Served cross-origin by the frontend dev server's proxy (and potentially a
-  // different Render service in production), so relax CORP just for this path.
-  app.use(
-    '/uploads',
-    (_req, res, next) => {
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
-      next()
-    },
-    express.static(path.join(process.cwd(), 'uploads')),
-  )
 
   app.use('/api/auth', authRoutes)
   app.use('/api/users', usersRoutes)

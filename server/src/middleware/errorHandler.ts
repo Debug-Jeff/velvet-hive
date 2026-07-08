@@ -3,6 +3,7 @@ import { ZodError } from 'zod'
 import { MulterError } from 'multer'
 import { ApiError } from '../lib/apiError'
 import { Prisma } from '../generated/prisma/client'
+import { captureException } from '../lib/sentry'
 
 export function notFoundHandler(req: Request, res: Response) {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.path}` } })
@@ -39,6 +40,10 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     }
   }
 
+  // Everything above is an expected, well-understood error type (validation,
+  // known Prisma constraint, etc.) - only a genuinely unanticipated error
+  // reaches here, which is exactly what's worth alerting on.
+  captureException(err)
   console.error(err)
   return res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } })
 }

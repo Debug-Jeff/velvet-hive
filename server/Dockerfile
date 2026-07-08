@@ -26,7 +26,5 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/products-all.json ./
 
-RUN mkdir -p uploads/avatars
-
 EXPOSE 3001
 CMD ["node", "dist/src/server.js"]

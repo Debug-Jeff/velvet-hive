@@ -12,6 +12,12 @@ services:
     dockerContext: ./server
     plan: free
     healthCheckPath: /api/health
+    # Runs once per deploy, before the new instance takes traffic, inside
+    # Render's own network (so no external-connection timeout risk).
+    # TEMPORARY: seeding is bundled in here for the first deploy only - once
+    # confirmed working, remove "&& npx --yes tsx prisma/seed.ts" so routine
+    # deploys only run migrations, not a re-seed.
+    preDeployCommand: npx prisma migrate deploy && npx --yes tsx prisma/seed.ts
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -67,21 +73,30 @@ services:
         sync: false
       - key: GOOGLE_REDIRECT_URI
         value: https://velvet-hive-backend.onrender.com/api/auth/google/callback
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
 
   - type: web
     name: velvet-hive-frontend
     runtime: static
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
+    envVars:
+      - key: VITE_SENTRY_DSN
+        sync: false
     routes:
-      # Same-origin API + uploads, proxied to the backend service so cookies
-      # and the app's existing relative "/api" paths keep working unchanged.
+      # Same-origin API, proxied to the backend service so cookies and the
+      # app's existing relative "/api" paths keep working unchanged. Uploaded
+      # media (avatars) is served directly from Cloudinary's CDN.
       - type: rewrite
         source: /api/*
         destination: https://velvet-hive-backend.onrender.com/api/*
-      - type: rewrite
-        source: /uploads/*
-        destination: https://velvet-hive-backend.onrender.com/uploads/*
       - type: rewrite
         source: /*
         destination: /index.html

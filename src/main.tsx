@@ -7,7 +7,10 @@ import { CurrencyProvider } from './context/CurrencyContext'
 import { CartProvider } from './context/CartContext'
 import { TooltipProvider } from './components/ui/tooltip'
 import { Toaster } from './components/ui/sonner'
+import { initSentry } from './lib/sentry'
 import './styles/global.css'
+
+initSentry()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
