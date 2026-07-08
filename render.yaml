@@ -70,7 +70,13 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
-        value: https://velvet-hive-backend.onrender.com/api/auth/google/callback
+        # Through the frontend's origin (Render's /api/* rewrite forwards it
+        # to this same backend) - NOT the backend's own domain directly.
+        # Google's redirect is a real top-level browser navigation, so
+        # whichever origin it lands on is where the refresh cookie gets
+        # scoped, and every other API call already goes through the frontend
+        # origin - this has to match or /api/auth/refresh can never see it.
+        value: https://velvet-hive-frontend.onrender.com/api/auth/google/callback
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
