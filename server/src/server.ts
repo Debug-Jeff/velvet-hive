@@ -1,6 +1,7 @@
 import { createApp } from './app'
 import { env } from './config/env'
 import { startScheduledJobs } from './lib/scheduler'
+import { startKeepAlive } from './lib/keepAlive'
 import { prisma } from './lib/prisma'
 import { initSentry } from './lib/sentry'
 import { autoSeedIfEmpty } from './lib/autoSeed'
@@ -15,6 +16,7 @@ const server = app.listen(env.PORT, () => {
 })
 
 const schedulerHandle = startScheduledJobs()
+const keepAliveHandle = startKeepAlive()
 
 let isShuttingDown = false
 
@@ -24,9 +26,8 @@ function shutdown(signal: string) {
   console.log(`\n${signal} received, shutting down…`)
 
   clearInterval(schedulerHandle)
+  if (keepAliveHandle) clearInterval(keepAliveHandle)
 
-  // Force-exit if close() hangs on a lingering connection, so the port is
-  // never left stuck in a weird state requiring a manual kill.
   const forceExit = setTimeout(() => {
     console.error('Graceful shutdown timed out, forcing exit')
     process.exit(1)

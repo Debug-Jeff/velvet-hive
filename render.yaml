@@ -12,10 +12,10 @@ services:
     dockerContext: ./server
     plan: free
     healthCheckPath: /api/health
-    # Note: preDeployCommand does not appear to run on Render's free plan
-    # (confirmed - deploy logs show no trace of it executing). Seeding is
-    # done as a one-off from a local machine instead - see server/API.md.
-    preDeployCommand: npx prisma migrate deploy
+    # preDeployCommand does not run on Render's free plan (confirmed - deploy
+    # logs show no trace of it executing), so `prisma migrate deploy` is run
+    # from the Docker CMD instead (see server/Dockerfile). Seeding is done as
+    # a one-off from a local machine - see server/API.md.
     envVars:
       - key: DATABASE_URL
         fromDatabase:

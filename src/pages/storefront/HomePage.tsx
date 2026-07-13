@@ -11,12 +11,6 @@ import { ApiError } from '@/api/client'
 import { CATEGORIES } from '@/constants/categories'
 import type { Product } from '@/types/product'
 
-const TRUST_BADGES = [
-  { icon: Truck, label: 'Fast delivery' },
-  { icon: CreditCard, label: 'Card & M-Pesa payments' },
-  { icon: ShieldCheck, label: 'Secure checkout' },
-]
-
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -49,15 +43,11 @@ export default function HomePage() {
           background: 'radial-gradient(ellipse 80% 60% at 50% 0%, var(--brand-primary-light), transparent)',
         }}
       >
-        <Badge variant="outline" className="mx-auto mb-4 gap-1 border-primary/30 bg-primary/5 px-3 py-1 text-primary">
-          <Sparkles className="size-3" /> Now delivering across Nairobi
-        </Badge>
-
         <h1 className="mx-auto max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
           Everything for your home, <span className="text-primary">delivered.</span>
         </h1>
         <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-          Groceries, electronics, and more — all in one basket, at prices that make sense.
+          Groceries, electronics, and more all in one basket.
         </p>
 
         <div className="relative mx-auto mt-8 max-w-md">
@@ -83,13 +73,6 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground">
-          {TRUST_BADGES.map(({ icon: Icon, label }) => (
-            <span key={label} className="flex items-center gap-1.5">
-              <Icon className="size-4 text-primary" /> {label}
-            </span>
-          ))}
-        </div>
       </section>
 
       <main className="mx-auto max-w-6xl px-4 py-10">

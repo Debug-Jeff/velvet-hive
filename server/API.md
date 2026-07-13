@@ -84,10 +84,6 @@ POST /api/auth/reset-password   { email, code, newPassword }
 
 **Product images vs. avatars**: these go through Cloudinary differently. Avatars are actually uploaded/stored on Cloudinary (above). Product images (seeded from `products-all.json`) stay as their original external URLs in `Product.imageUrl` - `src/lib/cloudinaryImage.ts` (frontend) wraps them through Cloudinary's *fetch* delivery type (`https://res.cloudinary.com/{cloud}/image/fetch/f_auto,q_auto/{encoded original url}`) at display time instead. Cloudinary downloads, caches, and optimizes the image on first request - no re-upload/migration of the 255 seeded images needed. Falls back to the raw original URL if `VITE_CLOUDINARY_CLOUD_NAME` isn't set (e.g. local dev without it configured). Tradeoff: still depends on the original source URL being reachable at least once; a full migration (download + re-upload each image, store the Cloudinary URL directly) would remove that dependency entirely but wasn't done here.
 
-### Why not `better-auth`
-
-Evaluated the vendored `better-auth` source as a potential replacement. Verdict: keep the custom implementation. `better-auth`'s default session model (DB-checked opaque session token, no rotation/reuse-detection) and its RBAC (`admin` plugin models roles as a single comma-separated string field, not a normalized join table) are both less rigorous than what's already here. Two things *were* borrowed from it: the idea of tight, endpoint-scoped rate limits on credential endpoints specifically (not the whole `/api/auth` mount), and Origin/Referer allowlisting as defense-in-depth alongside `SameSite` cookies (not yet implemented — noted for the production-hardening pass).
-
 ## RBAC model
 
 Real DB-backed RBAC — `Role` / `Permission` / `RolePermission` join table, not a hardcoded enum. Each `User` has a single `roleId` FK. Permission keys follow `resource:action`.

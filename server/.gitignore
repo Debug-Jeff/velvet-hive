@@ -5,6 +5,7 @@ dist/
 .env
 .env.local
 .env.*.local
+API.md
 
 # Prisma-generated client (regenerated via `prisma generate`)
 /src/generated/prisma
