@@ -3,7 +3,7 @@ import axios from 'axios'
 import { prisma } from '../../lib/prisma'
 import { ApiError } from '../../lib/apiError'
 import { sendMail } from '../../lib/mailer'
-import { passwordResetEmail, suspiciousLoginEmail, verificationEmail } from '../../lib/emailTemplates'
+import { accountExistsEmail, passwordResetEmail, suspiciousLoginEmail, verificationEmail } from '../../lib/emailTemplates'
 import { hashPassword, verifyPassword } from './password'
 import { generateRefreshToken, hashRefreshToken, signAccessToken, REFRESH_TOKEN_TTL_MS } from './jwt'
 import { consumeVerificationCode, createVerificationCode } from './verificationCode.service'
@@ -65,7 +65,11 @@ export async function register(input: {
   phone?: string
 }) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } })
-  if (existing) throw ApiError.conflict('An account with this email already exists', 'EMAIL_TAKEN')
+  if (existing) {
+    const { subject, html } = accountExistsEmail({ firstName: existing.firstName })
+    await sendMail({ to: existing.email, subject, html })
+    return { email: input.email }
+  }
 
   const customerRole = await prisma.role.findUnique({ where: { name: CUSTOMER_ROLE_NAME } })
   if (!customerRole) throw new Error('CUSTOMER role is not seeded')

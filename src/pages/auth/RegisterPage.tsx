@@ -38,12 +38,10 @@ export default function RegisterPage() {
   async function onSubmit(values: RegisterValues) {
     try {
       const { email } = await registerUser({ ...values, turnstileToken })
-      toast.success('Check your email for a verification code')
+      toast.success("If that email isn't already registered, we've sent a verification code to it.")
       navigate(`/verify-email?email=${encodeURIComponent(email)}`)
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        form.setError('root', { message: 'An account with that email already exists.' })
-      } else if (err instanceof ApiError) {
+      if (err instanceof ApiError) {
         form.setError('root', { message: err.message })
       } else {
         form.setError('root', { message: "We couldn't reach the server. Please try again." })

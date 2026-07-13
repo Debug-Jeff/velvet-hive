@@ -23,6 +23,17 @@ export function verificationEmail(input: { firstName: string; code: string }) {
   }
 }
 
+export function accountExistsEmail(input: { firstName: string }) {
+  return {
+    subject: `${env.APP_NAME}: sign-up attempt on your account`,
+    html: layout(`
+      <p>Hi ${input.firstName},</p>
+      <p>Someone just tried to create a new ${env.APP_NAME} account using this email address, which already has one.</p>
+      <p>If this was you, you can just log in instead. If you've forgotten your password, use the "Forgot password" link on the sign-in page.</p>
+    `),
+  }
+}
+
 export function passwordResetEmail(input: { firstName: string; code: string }) {
   return {
     subject: `${env.APP_NAME}: reset your password`,

@@ -23,7 +23,10 @@ function clearRefreshCookie(res: Response) {
 
 export async function registerHandler(req: Request, res: Response) {
   const result = await authService.register(req.body)
-  res.status(201).json({ message: 'Account created. Check your email for a verification code.', email: result.email })
+  res.status(201).json({
+    message: "If that email isn't already registered, we've sent a verification code to it.",
+    email: result.email,
+  })
 }
 
 export async function verifyEmailHandler(req: Request, res: Response) {

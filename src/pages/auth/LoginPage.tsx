@@ -48,7 +48,7 @@ export default function LoginPage() {
       await login(values.email, values.password, turnstileToken)
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setFormError("That email and password don't match our records.")
+        setFormError("We couldn't sign you in. Please check your email and password and try again.")
       } else if (err instanceof ApiError) {
         setFormError(err.message)
       } else {
